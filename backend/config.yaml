@@ -1,0 +1,157 @@
+# ============================================================
+# HAR Project - Central Configuration
+# Human Activity Recognition using Deep Learning & Computer Vision
+# ============================================================
+
+# ─── Project ─────────────────────────────────────────────────
+project:
+  name: "HAR-Deep-Vision"
+  version: "1.0.0"
+  description: "Lightweight hybrid CNN + Temporal Attention + Pose Fusion HAR system"
+  seed: 42
+
+# ─── Data ────────────────────────────────────────────────────
+data:
+  dataset_name: "ucf101"           # ucf101 | hmdb51 | custom
+  dataset_path: "../data/ucf101"
+  processed_path: "../data/processed"
+  class_names_file: "../data/class_names.json"
+
+  # Subset of classes to use (empty list = use all)
+  # These must exist in the actual dataset
+  # NOTE: Reduced to 3 classes for demonstration model
+  selected_classes:
+    - "SittingNormally"
+    - "RaisingHand"
+    - "ThumbsUp"
+
+  # Frame sampling
+  sequence_length: 16              # frames per clip
+  frame_size: [224, 224]           # [H, W]
+  frame_step: 2                    # sample every N-th frame
+  temporal_jitter: true            # random start for training
+
+  # Normalization (ImageNet stats)
+  mean: [0.485, 0.456, 0.406]
+  std:  [0.229, 0.224, 0.225]
+
+  # Train/val/test split ratios
+  train_ratio: 0.70
+  val_ratio:   0.15
+  test_ratio:  0.15
+
+  num_workers: 0
+  pin_memory: true
+
+# ─── Model ───────────────────────────────────────────────────
+model:
+  name: "HARModel"                 # architecture identifier
+  backbone: "mobilenet_v3_small"   # mobilenet_v3_small | efficientnet_b0 | resnet18
+  backbone_pretrained: true
+
+  # CNN encoder output
+  cnn_feature_dim: 576             # mobilenet_v3_small → 576; efficientnet_b0 → 1280; resnet18 → 512
+
+  # Temporal Transformer
+  temporal_type: "transformer"     # transformer | lstm | gru
+  transformer_d_model: 256
+  transformer_nhead: 8
+  transformer_num_layers: 2
+  transformer_dim_feedforward: 512
+  transformer_dropout: 0.1
+
+  # LSTM fallback (only used when temporal_type=lstm|gru)
+  lstm_hidden_size: 256
+  lstm_num_layers: 2
+  lstm_dropout: 0.3
+  lstm_bidirectional: false
+
+  # Pose branch
+  use_pose: true
+  pose_input_dim: 99               # 33 keypoints × 3 (x, y, visibility)
+  pose_hidden_dim: 128
+  pose_output_dim: 64
+
+  # Fusion
+  fusion_type: "concat"            # concat | add | attention
+  fusion_dropout: 0.3
+
+  # Classifier
+  num_classes: 2                   # updated dynamically from class_names.json
+  classifier_dropout: 0.4
+
+# ─── Training ────────────────────────────────────────────────
+training:
+  epochs: 50
+  batch_size: 16
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  optimizer: "adamw"               # adam | adamw | sgd
+  scheduler: "cosine"              # cosine | step | plateau | none
+  scheduler_patience: 5            # for plateau
+  scheduler_step_size: 10          # for step
+  scheduler_gamma: 0.5             # for step
+  warmup_epochs: 3
+  gradient_clip_norm: 1.0
+
+  # Early stopping
+  early_stopping: true
+  early_stopping_patience: 10
+  early_stopping_min_delta: 0.001
+
+  # Mixed precision (requires CUDA)
+  mixed_precision: true
+
+  # Checkpointing
+  checkpoint_dir: "../checkpoints"
+  save_every_n_epochs: 5
+  save_best_only: true
+  best_metric: "val_accuracy"      # metric to monitor for best checkpoint
+
+  # Resume
+  resume_from: null                # path to checkpoint, or null
+
+  # Label smoothing
+  label_smoothing: 0.1
+
+# ─── Evaluation ──────────────────────────────────────────────
+evaluation:
+  batch_size: 16
+  results_dir: "../results"
+  top_k: [1, 5]                    # top-k accuracy metrics
+
+# ─── Inference ───────────────────────────────────────────────
+inference:
+  checkpoint_path: "../checkpoints/best_model.pth"
+  device: "auto"                   # auto | cuda | cpu
+  sequence_length: 16
+  frame_size: [224, 224]
+  smoothing_alpha: 0.5             # EMA smoothing for live predictions (was 0.7 — too sticky)
+  confidence_threshold: 0.40       # Below this -> display "Detecting..." (50% = random for 2 classes)
+  top_k: 5
+
+  # Rolling window
+  rolling_window: true
+  window_stride: 1                 # shift by N frames per inference
+
+# ─── Pose Estimation ─────────────────────────────────────────
+pose:
+  estimator: "mediapipe"           # mediapipe | none
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+  draw_landmarks: true
+
+# ─── API ─────────────────────────────────────────────────────
+api:
+  host: "0.0.0.0"
+  port: 8000
+  reload: false
+  workers: 1
+  max_video_size_mb: 100
+  allowed_video_formats: ["mp4", "avi", "mov", "mkv", "webm"]
+
+# ─── Logging ─────────────────────────────────────────────────
+logging:
+  level: "INFO"                    # DEBUG | INFO | WARNING | ERROR
+  log_file: "../results/training.log"
+  tensorboard: false               # set true to enable TensorBoard logging

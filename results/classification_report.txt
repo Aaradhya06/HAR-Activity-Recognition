@@ -1,0 +1,12 @@
+Human Activity Recognition -- Classification Report
+============================================================
+
+                 precision    recall  f1-score   support
+
+SittingNormally       0.60      1.00      0.75         3
+    RaisingHand       0.00      0.00      0.00         3
+       ThumbsUp       0.25      0.33      0.29         3
+
+       accuracy                           0.44         9
+      macro avg       0.28      0.44      0.35         9
+   weighted avg       0.28      0.44      0.35         9

@@ -1,0 +1,13 @@
+{
+  "top_1_accuracy": 0.4444444444444444,
+  "macro_precision": 0.2833,
+  "macro_recall": 0.4444,
+  "macro_f1": 0.3452,
+  "weighted_f1": 0.3452,
+  "avg_inference_ms_per_sample": 46.23,
+  "fps_estimate": 21.63,
+  "total_parameters": 2288612,
+  "trainable_parameters": 1361604,
+  "num_test_samples": 9,
+  "num_classes_evaluated": 3
+}
